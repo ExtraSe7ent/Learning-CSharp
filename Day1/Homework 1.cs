@@ -1,18 +1,29 @@
-﻿using System;
+using System;
+using System.Text;
 
 public class Matrix
 {
-    private int[,] data;
+    private readonly int[,] data;
     public int Rows { get; }
     public int Columns { get; }
 
     public Matrix(int rows, int columns)
     {
+        if (rows < 0 || columns < 0)
+        {
+            throw new ArgumentException("So dong va cot khong duoc la so am.");
+        }
         Rows = rows;
         Columns = columns;
         data = new int[rows, columns];
     }
 
+    public int this[int row, int col]
+    {
+        get => data[row, col];
+        set => data[row, col] = value;
+    }
+    
     public void Input()
     {
         for (int i = 0; i < Rows; i++)
@@ -20,7 +31,14 @@ public class Matrix
             while (true)
             {
                 Console.Write($"Nhap cac phan tu cho dong {i + 1}: ");
-                string line = Console.ReadLine();
+                
+                string? line = Console.ReadLine();
+                if (string.IsNullOrEmpty(line))
+                {
+                    Console.WriteLine("Loi: Chuoi nhap rong, vui long thu lai.");
+                    continue;
+                }
+
                 string[] numberStrings = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
                 if (numberStrings.Length != Columns)
@@ -33,7 +51,7 @@ public class Matrix
                 {
                     for (int j = 0; j < Columns; j++)
                     {
-                        data[i, j] = int.Parse(numberStrings[j]);
+                        this[i, j] = int.Parse(numberStrings[j]);
                     }
                     break;
                 }
@@ -48,23 +66,17 @@ public class Matrix
     public void Display(string message)
     {
         Console.WriteLine(message);
-        if (data == null)
-        {
-            Console.WriteLine("Ma tran khong hop le.");
-            return;
-        }
-        
         for (int i = 0; i < Rows; i++)
         {
             for (int j = 0; j < Columns; j++)
             {
-                Console.Write(data[i, j].ToString().PadRight(5));
+                Console.Write(this[i, j].ToString().PadRight(5));
             }
             Console.WriteLine();
         }
     }
 
-    public static Matrix Add(Matrix a, Matrix b)
+    public static Matrix? operator +(Matrix a, Matrix b)
     {
         if (a.Rows != b.Rows || a.Columns != b.Columns)
         {
@@ -76,13 +88,13 @@ public class Matrix
         {
             for (int j = 0; j < a.Columns; j++)
             {
-                result.data[i, j] = a.data[i, j] + b.data[i, j];
+                result[i, j] = a[i, j] + b[i, j];
             }
         }
         return result;
     }
 
-    public static Matrix Multiply(Matrix a, Matrix b)
+    public static Matrix? operator *(Matrix a, Matrix b)
     {
         if (a.Columns != b.Rows)
         {
@@ -97,9 +109,9 @@ public class Matrix
                 int sum = 0;
                 for (int k = 0; k < a.Columns; k++)
                 {
-                    sum += a.data[i, k] * b.data[k, j];
+                    sum += a[i, k] * b[k, j];
                 }
-                result.data[i, j] = sum;
+                result[i, j] = sum;
             }
         }
         return result;
@@ -112,7 +124,7 @@ public class Matrix
         {
             for (int j = 0; j < Columns; j++)
             {
-                result.data[j, i] = data[i, j];
+                result[j, i] = this[i, j];
             }
         }
         return result;
@@ -120,26 +132,30 @@ public class Matrix
 
     public int FindMin()
     {
-        int min = data[0, 0];
+        if (Rows == 0 || Columns == 0)
+        {
+            throw new InvalidOperationException("Khong the tim Min trong ma tran rong.");
+        }
+
+        int min = this[0, 0];
         foreach (int value in data)
         {
-            if (value < min)
-            {
-                min = value;
-            }
+            if (value < min) min = value;
         }
         return min;
     }
 
     public int FindMax()
     {
-        int max = data[0, 0];
+        if (Rows == 0 || Columns == 0)
+        {
+            throw new InvalidOperationException("Khong the tim Max trong ma tran rong.");
+        }
+        
+        int max = this[0, 0];
         foreach (int value in data)
         {
-            if (value > max)
-            {
-                max = value;
-            }
+            if (value > max) max = value;
         }
         return max;
     }
@@ -149,7 +165,7 @@ class Program
 {
     static void Main(string[] args)
     {
-        Console.OutputEncoding = System.Text.Encoding.UTF8;
+        Console.OutputEncoding = Encoding.UTF8;
 
         Matrix a = InputMatrix("A");
         Matrix b = InputMatrix("B");
@@ -164,16 +180,13 @@ class Program
             Console.WriteLine("6. Nhap lai hai ma tran moi");
             Console.WriteLine("7. Thoat");
             Console.Write("Vui long chon chuc nang: ");
-            string choice = Console.ReadLine();
+            
+            string? choice = Console.ReadLine();
 
             switch (choice)
             {
-                case "1":
-                    PerformAddition(a, b);
-                    break;
-                case "2":
-                    PerformMultiplication(a, b);
-                    break;
+                case "1": PerformAddition(a, b); break;
+                case "2": PerformMultiplication(a, b); break;
                 case "3":
                     PerformTranspose(a, "A");
                     Console.WriteLine();
@@ -193,6 +206,7 @@ class Program
                     b = InputMatrix("B");
                     break;
                 case "7":
+                    Console.WriteLine("Da thoat chuong trinh.");
                     return;
                 default:
                     Console.WriteLine("Lua chon khong hop le. Vui long chon lai.");
@@ -203,13 +217,15 @@ class Program
 
     static Matrix InputMatrix(string name)
     {
-        Console.WriteLine($"\n - Nhap thong tin cho ma tran {name}");
+        Console.WriteLine($"\n- Nhap thong tin cho ma tran {name}");
         int rows, cols;
 
         while (true)
         {
             Console.Write("Nhap so dong va so cot: ");
-            string line = Console.ReadLine();
+            string? line = Console.ReadLine();
+            if (string.IsNullOrEmpty(line)) continue;
+            
             string[] parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
             if (parts.Length == 2 && int.TryParse(parts[0], out rows) && int.TryParse(parts[1], out cols) && rows > 0 && cols > 0)
@@ -222,14 +238,14 @@ class Program
             }
         }
 
-        Matrix matrix = new Matrix(rows, cols);
+        Matrix matrix = new(rows, cols);
         matrix.Input();
         return matrix;
     }
 
     static void PerformAddition(Matrix a, Matrix b)
     {
-        Matrix result = Matrix.Add(a, b);
+        Matrix? result = a + b;
         if (result != null)
         {
             result.Display("\n - Ma tran tong A + B:");
@@ -242,7 +258,7 @@ class Program
 
     static void PerformMultiplication(Matrix a, Matrix b)
     {
-        Matrix result = Matrix.Multiply(a, b);
+        Matrix? result = a * b;
         if (result != null)
         {
             result.Display("\n - Ma tran tich A x B:");
@@ -262,7 +278,14 @@ class Program
     static void PerformFindMinMax(Matrix matrix, string name)
     {
         Console.WriteLine($"\n - Ket qua Min/Max cho ma tran {name}");
-        Console.WriteLine($"Phan tu lon nhat la: {matrix.FindMax()}");
-        Console.WriteLine($"Phan tu nho nhat la: {matrix.FindMin()}");
+        try
+        {
+            Console.WriteLine($"Phan tu lon nhat la: {matrix.FindMax()}");
+            Console.WriteLine($"Phan tu nho nhat la: {matrix.FindMin()}");
+        }
+        catch(InvalidOperationException ex)
+        {
+            Console.WriteLine($"Loi: {ex.Message}");
+        }
     }
 }
